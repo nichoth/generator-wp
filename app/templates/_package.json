@@ -1,0 +1,26 @@
+{
+  "name": "",
+  "description": "",
+  "main": "",
+  "version": "0.0.0",
+  "browserify": {
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "browserify -d example/example.js > example/bundle.js",
+    "watch": "watchify example/example.js -o example/bundle.js -dv",
+    "dev": "parallelshell \"npm run watch\" \"npm run server\"",
+    "server": "",
+    "demo": "browserify example/example.js > example/bundle.js && html-inline example/index.html | curl -sT- https://htmlb.in"
+  },
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/"
+  },
+  "license": "ISC",
+  "peerDependencies": {
+  },
+  "devDependencies": {
+  }
+}
