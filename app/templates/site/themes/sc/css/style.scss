@@ -1,0 +1,18 @@
+/*
+Theme Name: 1206-wp
+*/
+
+
+// -----------------------------------------------------------------------------
+// Import this project's SASS files.
+// -----------------------------------------------------------------------------
+
+// Setup
+@import "vars";
+@import "1206-base/1206-base";
+
+
+// Project-specific imports
+@import "helsing/_helsing.scss";
+// @import "flexslider";
+@import "media-query";

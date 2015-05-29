@@ -3,20 +3,14 @@
   "description": "",
   "main": "",
   "version": "0.0.0",
-  "browserify": {
-  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify -d example/example.js > example/bundle.js",
-    "watch": "watchify example/example.js -o example/bundle.js -dv",
-    "dev": "parallelshell \"npm run watch\" \"npm run server\"",
-    "server": "",
-    "demo": "browserify example/example.js > example/bundle.js && html-inline example/index.html | curl -sT- https://htmlb.in"
+    "lr": "livereload site/themes/ag/",
+    "build-sass": "sass site/themes/sc/css/style.scss:site/themes/sc/style.css --style compressed",
+    "watch-sass": "sass --watch site/themes/ag/css/style.scss:site/themes/ag/style.css --style expanded"
   },
-  "author": "",
   "repository": {
     "type": "git",
-    "url": "https://github.com/"
+    "url": "https://bitbucket.org/slowclouds"
   },
   "license": "ISC",
   "peerDependencies": {

@@ -54,14 +54,8 @@ module.exports = yeoman.generators.Base.extend({
       this.appName = props.appName;
       this.description = props.description;
       this.appNameSlug = slug(props.appName);
-      this.devDeps = props.devDeps.concat(props.devServer, 'parallelshell');
-      this.includeServer = props.devServer.length > 0;
+      this.devDeps = ['parallelshell', 'livereload'];
       this.installDeps = props.installDeps;
-      this.transforms = [];
-      if (props.devDeps.indexOf('react') > -1) {
-        this.devDeps.push('reactify');
-        this.transforms.push('reactify');
-      }
       this.depVersions = {};
 
       function devDeps(cb) {
@@ -74,15 +68,6 @@ module.exports = yeoman.generators.Base.extend({
         });
       }
 
-      function conf(cb) {
-        npmconf.load({}, function(err, conf) {
-          self.authorName = conf.get('init.author.name');
-          self.authorEmail = conf.get('init.author.email');
-          self.github = conf.get('init.author.github');
-          cb();
-        });
-      }
-
       function getVersion(item, callback) {
         latest(item, function(err, version) {
           self.depVersions[item] = '^'+version;
@@ -90,7 +75,7 @@ module.exports = yeoman.generators.Base.extend({
         });
       }
 
-      var asyncTasks = [conf];
+      var asyncTasks = [];
       if (!this.installDeps) asyncTasks.push(devDeps);
 
       async.parallel(asyncTasks, function() {
@@ -108,18 +93,9 @@ module.exports = yeoman.generators.Base.extend({
       var pkg = require('./templates/_package.json');
       pkg.name = this.appNameSlug;
       pkg.description = this.description;
-      pkg.main = this.mainFile;
-      pkg.browserify.transform = this.transforms;
-      pkg.author = this.authorName + ' <' + this.authorEmail+'>';
       pkg.repository.url = pkg.repository.url+
-        this.github+
         '/'+this.appNameSlug+'.git'
       ;
-      if (this.includeServer) {
-        pkg.scripts.server = 'node server.js';
-      } else {
-        delete pkg.scripts.server;
-      }
       if (!this.installDeps && !this.skipVersions) {
         pkg.devDependencies = this.depVersions;
       }
@@ -128,31 +104,16 @@ module.exports = yeoman.generators.Base.extend({
         JSON.stringify(pkg, null, 2)
       );
 
-      this.fs.copyTpl(
-        this.templatePath('example/_index.html'),
-        this.destinationPath('example/index.html'),
-        this
+      var bower = require('./templates/_bower.json');
+      bower.name = this.appNameSlug;
+      fs.writeFile(
+        this.destinationPath('bower.json'),
+        JSON.stringify(bower, null, 2)
       );
-      this.fs.copyTpl(
-        this.templatePath('example/_example.js'),
-        this.destinationPath('example/example.js'),
-        this
-      );
+
       this.fs.copyTpl(
         this.templatePath('_readme.md'),
         this.destinationPath('readme.md'),
-        this
-      );
-      if (this.includeServer) {
-        this.fs.copyTpl(
-          this.templatePath('_server.js'),
-          this.destinationPath('server.js'),
-          this
-        );
-      }
-      this.fs.copyTpl(
-        this.templatePath('_index.js'),
-        this.destinationPath(this.mainFile),
         this
       );
     },
@@ -168,6 +129,7 @@ module.exports = yeoman.generators.Base.extend({
   install: function () {
     if (this.installDeps) {
       this.npmInstall(this.devDeps, {saveDev: true});
+      this.bowerInstall();
     }
   }
 });

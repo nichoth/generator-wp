@@ -1,0 +1,11 @@
+{
+  "name": "",
+  "version": "0.0.0",
+  "dependencies": {
+    "little-grid": "*",
+    "silent-clearfix": "*",
+    "normalize.css": "*",
+    "flexslider": "latest"
+  },
+  "private": true
+}
