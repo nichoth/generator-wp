@@ -26,8 +26,10 @@
     "async": "^1.0.0",
     "chalk": "^1.0.0",
     "latest-version": "^1.0.0",
+    "mkdirp": "^0.5.1",
     "npmconf": "^2.1.2",
     "slug": "^0.8.0",
+    "tar": "^2.1.1",
     "yeoman-generator": "^0.18.9",
     "yosay": "^1.0.2"
   },

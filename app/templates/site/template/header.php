@@ -10,17 +10,16 @@ $path = get_bloginfo('template_url');
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="shortcut icon" href="<?=$path?>/images/icon-favicon.png" type="image/x-icon">
 
-	<!-- Load styles -->
+  <!-- css -->
 	<link href="<?=$path?>/style.css" rel="stylesheet" type="text/css" media="all" />
 
 	<!-- Enqued Scripts -->
 	<?php wp_head(); ?>
 
-	<!-- Load jQuery -->
-	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-
-	<!-- Load Flexslider -->
+	<!-- JS -->
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 	<script src="<?=$path?>/js/jquery.flexslider-min.js"></script>
+
 
 	</head>
 

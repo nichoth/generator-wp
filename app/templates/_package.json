@@ -5,8 +5,8 @@
   "version": "0.0.0",
   "scripts": {
     "lr": "livereload site/themes/ag/",
-    "build-sass": "sass site/themes/sc/css/style.scss:site/themes/sc/style.css --style compressed",
-    "watch-sass": "sass --watch site/themes/ag/css/style.scss:site/themes/ag/style.css --style expanded"
+    "build-sass": "sass site/style/style.scss:dist/themes/sc/style.css --style compressed",
+    "watch-sass": "sass --watch site/style/style.scss:site/themes/sc/style.css --style expanded"
   },
   "repository": {
     "type": "git",

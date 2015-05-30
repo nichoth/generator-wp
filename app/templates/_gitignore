@@ -23,7 +23,8 @@ sftp-config.json
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
@@ -80,3 +81,4 @@ node_modules
 *.db
 *.swp
 bundle.js
+bower_components

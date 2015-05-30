@@ -3,14 +3,24 @@ var yeoman = require('yeoman-generator');
 var chalk = require('chalk');
 // var yosay = require('yosay');
 var slug = require('slug');
-var npmconf = require('npmconf');
 var latest = require('latest-version');
 var async = require('async');
 var fs = require('fs');
+var mkdirp = require('mkdirp');
+var http = require('http');
+var tar = require('tar');
+var zlib = require('zlib');
 
 module.exports = yeoman.generators.Base.extend({
   initializing: function () {
     this.pkg = require('../package.json');
+    this.mampPath = '/Applications/MAMP/htdocs';
+    this.config = {
+      paths: {
+        style: 'site/style',
+        wp: 'site/wp'
+      }
+    };
   },
 
   prompting: function () {
@@ -48,6 +58,12 @@ module.exports = yeoman.generators.Base.extend({
       name: 'installDeps',
       message: 'Install dependencies?',
       default: true
+    },
+    {
+      type: 'confirm',
+      name: 'mampDir',
+      message: 'Create MAMP directory?',
+      default: true
     }];
 
     this.prompt(prompts, function (props) {
@@ -56,6 +72,7 @@ module.exports = yeoman.generators.Base.extend({
       this.appNameSlug = slug(props.appName);
       this.devDeps = ['parallelshell', 'livereload'];
       this.installDeps = props.installDeps;
+      this.mampDir = props.mampDir;
       this.depVersions = {};
 
       function devDeps(cb) {
@@ -76,8 +93,7 @@ module.exports = yeoman.generators.Base.extend({
       }
 
       var asyncTasks = [];
-      if (!this.installDeps) asyncTasks.push(devDeps);
-
+      asyncTasks.push(devDeps);
       async.parallel(asyncTasks, function() {
         done();
       });
@@ -116,6 +132,11 @@ module.exports = yeoman.generators.Base.extend({
         this.destinationPath('readme.md'),
         this
       );
+      this.fs.copyTpl(
+        this.templatePath(this.config.paths.style+'/style.scss'),
+        this.destinationPath(this.config.paths.style+'/style.scss'),
+        this
+      );
     },
 
     projectfiles: function () {
@@ -123,6 +144,37 @@ module.exports = yeoman.generators.Base.extend({
         this.templatePath('editorconfig'),
         this.destinationPath('.editorconfig')
       );
+      this.fs.copy(
+        this.templatePath('_gitignore'),
+        this.destinationPath('.gitignore')
+      );
+      this.fs.copy(
+        this.templatePath('site/wp/themes/sc/*.*'),
+        this.destinationPath(this.config.paths.wp+'/'+'themes/sc/')
+      );
+      this.fs.copy(
+        this.templatePath('site/index.php'),
+        this.destinationPath('site/index.php')
+      );
+      this.fs.copy(
+        this.templatePath('site/themes/index.php'),
+        this.destinationPath('site/themes/index.php')
+      );
+      this.fs.copy(
+        this.templatePath(this.config.paths.style+'/_*.scss'),
+        this.destinationPath(this.config.paths.style)
+      );
+      mkdirp.sync(
+        this.destinationPath(this.config.paths.style+'/'+this.appNameSlug)
+      );
+      fs.writeFileSync(this.destinationPath(
+        this.config.paths.style+'/'+
+        this.appNameSlug+'/_'+this.appNameSlug+'.scss'
+      ));
+
+      fs.mkdirSync(this.destinationPath('dist'));
+      mkdirp.sync(this.destinationPath('site/wp/themes/sc/fonts'));
+      mkdirp.sync(this.destinationPath('site/wp/themes/sc/js'));
     }
   },
 
@@ -130,6 +182,21 @@ module.exports = yeoman.generators.Base.extend({
     if (this.installDeps) {
       this.npmInstall(this.devDeps, {saveDev: true});
       this.bowerInstall();
+    }
+
+    // download wp and install
+    if (this.mampDir) {
+      var path = this.mampPath+'/'+this.appNameSlug;
+      mkdirp.sync(path);
+      http.get(
+        'https://wordpress.org/latest.tar.gz',
+        function(resp) {
+          resp
+            .pipe(zlib.createGunzip())
+            .pipe(tar.Extract({ path: path })
+          );
+        }
+      );
     }
   }
 });

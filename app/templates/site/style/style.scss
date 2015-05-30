@@ -9,10 +9,9 @@ Theme Name: 1206-wp
 
 // Setup
 @import "vars";
-@import "1206-base/1206-base";
 
 
 // Project-specific imports
-@import "helsing/_helsing.scss";
+@import "<%=appNameSlug%>/_<%=appNameSlug%>.scss";
 // @import "flexslider";
 @import "media-query";
