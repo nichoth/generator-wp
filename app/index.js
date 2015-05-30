@@ -7,14 +7,16 @@ var latest = require('latest-version');
 var async = require('async');
 var fs = require('fs');
 var mkdirp = require('mkdirp');
-var http = require('http');
+// var http = require('http');
+// var https = require('https');
+var request = require('request');
 var tar = require('tar');
 var zlib = require('zlib');
+var rimraf = require('rimraf');
 
 module.exports = yeoman.generators.Base.extend({
   initializing: function () {
     this.pkg = require('../package.json');
-    this.mampPath = '/Applications/MAMP/htdocs';
     this.config = {
       paths: {
         style: 'site/style',
@@ -70,7 +72,8 @@ module.exports = yeoman.generators.Base.extend({
       this.appName = props.appName;
       this.description = props.description;
       this.appNameSlug = slug(props.appName);
-      this.devDeps = ['parallelshell', 'livereload'];
+      this.mampPath = '/Applications/MAMP/htdocs/'+this.appNameSlug+'/';
+      this.devDeps = ['livereload'];
       this.installDeps = props.installDeps;
       this.mampDir = props.mampDir;
       this.depVersions = {};
@@ -105,41 +108,112 @@ module.exports = yeoman.generators.Base.extend({
   writing: {
     app: function () {
 
-      // easier without template
-      var pkg = require('./templates/_package.json');
-      pkg.name = this.appNameSlug;
-      pkg.description = this.description;
-      pkg.repository.url = pkg.repository.url+
-        '/'+this.appNameSlug+'.git'
-      ;
-      if (!this.installDeps && !this.skipVersions) {
-        pkg.devDependencies = this.depVersions;
-      }
-      fs.writeFile(
-        this.destinationPath('package.json'),
-        JSON.stringify(pkg, null, 2)
-      );
+  //     // easier without template
+  //     // var pkg = require('./templates/_package.json');
+  //     // pkg.name = this.appNameSlug;
+  //     // pkg.description = this.description;
+  //     // pkg.repository.url = pkg.repository.url+
+  //     //   '/'+this.appNameSlug+'.git'
+  //     // ;
+  //     // if (!this.installDeps && !this.skipVersions) {
+  //     //   pkg.devDependencies = this.depVersions;
+  //     // }
+  //     // fs.writeFile(
+  //     //   this.destinationPath('package.json'),
+  //     //   JSON.stringify(pkg, null, 2)
+  //     // );
 
-      var bower = require('./templates/_bower.json');
-      bower.name = this.appNameSlug;
-      fs.writeFile(
-        this.destinationPath('bower.json'),
-        JSON.stringify(bower, null, 2)
-      );
+  //     // var bower = require('./templates/_bower.json');
+  //     // bower.name = this.appNameSlug;
+  //     // fs.writeFile(
+  //     //   this.destinationPath('bower.json'),
+  //     //   JSON.stringify(bower, null, 2)
+  //     // );
 
-      this.fs.copyTpl(
-        this.templatePath('_readme.md'),
-        this.destinationPath('readme.md'),
-        this
-      );
-      this.fs.copyTpl(
-        this.templatePath(this.config.paths.style+'/style.scss'),
-        this.destinationPath(this.config.paths.style+'/style.scss'),
-        this
-      );
+  //     // this.fs.copyTpl(
+  //     //   this.templatePath('_readme.md'),
+  //     //   this.destinationPath('readme.md'),
+  //     //   this
+  //     // );
+  //     // this.fs.copyTpl(
+  //     //   this.templatePath(this.config.paths.style+'/style.scss'),
+  //     //   this.destinationPath(this.config.paths.style+'/style.scss'),
+  //     //   this
+  //     // );
     },
 
     projectfiles: function () {
+      var done = this.async();
+      var self = this;
+
+  //     // download wp
+  //     function wp(cb) {
+  //       var path = self.mampPath;
+  //       mkdirp.sync(path);
+  //       http.get(
+  //         'https://wordpress.org/latest.tar.gz',
+  //         function(resp) {
+  //           resp
+  //             .pipe(zlib.createGunzip())
+  //             .pipe(tar.Extract({ path: path })
+  //           );
+  //           resp.on('end', cleanup);
+  //         }
+  //       );
+  //       function cleanup() {
+  //         async.parallel([
+  //           function(cb) {
+  //             rimraf(self.mampPath+'wp-content/themes', function() {
+  //               cb();
+  //             });
+  //           },
+  //           plugins
+  //         ], function() {
+  //           cb();
+  //         });
+
+
+  //       }
+  //     }
+
+  //     function plugins(cb) {
+  //       rimraf(self.mampPath+'wp-content/plugins', function() {
+  //         self.directory(self.templatePath('plugins'),
+  //           self.mampPath+'wp-content/plugins'
+  //         );
+  //         cb();
+  //       });
+  //     }
+
+      // download theme
+      function scTheme(cb) {
+        var path = self.destinationPath('bla');
+        var extractor = tar.Extract({path:path});
+        request.get('https://github.com/nichoth/sc-wp-theme/tarball/master')
+          .pipe(zlib.createGunzip())
+          .pipe(extractor)
+        ;
+        extractor.on('end', cb);
+      }
+
+      var asyncTasks = [scTheme];
+      // if (this.mampDir) { asyncTasks.push(wp); }
+      async.parallel(asyncTasks, function() {
+        // make symlink
+        if (self.mampDir) {
+          mkdirp.sync(self.mampPath+'wp-content/themes');
+          fs.symlink(
+            self.destinationPath('public'),
+            self.mampPath+'wp-content/themes/sc',
+            function() {
+              done();
+            }
+          );
+        }
+      });
+
+
+
       this.fs.copy(
         this.templatePath('editorconfig'),
         this.destinationPath('.editorconfig')
@@ -148,55 +222,14 @@ module.exports = yeoman.generators.Base.extend({
         this.templatePath('_gitignore'),
         this.destinationPath('.gitignore')
       );
-      this.fs.copy(
-        this.templatePath('site/wp/themes/sc/*.*'),
-        this.destinationPath(this.config.paths.wp+'/'+'themes/sc/')
-      );
-      this.fs.copy(
-        this.templatePath('site/index.php'),
-        this.destinationPath('site/index.php')
-      );
-      this.fs.copy(
-        this.templatePath('site/themes/index.php'),
-        this.destinationPath('site/themes/index.php')
-      );
-      this.fs.copy(
-        this.templatePath(this.config.paths.style+'/_*.scss'),
-        this.destinationPath(this.config.paths.style)
-      );
-      mkdirp.sync(
-        this.destinationPath(this.config.paths.style+'/'+this.appNameSlug)
-      );
-      fs.writeFileSync(this.destinationPath(
-        this.config.paths.style+'/'+
-        this.appNameSlug+'/_'+this.appNameSlug+'.scss'
-      ));
-
-      fs.mkdirSync(this.destinationPath('dist'));
-      mkdirp.sync(this.destinationPath('site/wp/themes/sc/fonts'));
-      mkdirp.sync(this.destinationPath('site/wp/themes/sc/js'));
     }
   },
 
   install: function () {
     if (this.installDeps) {
-      this.npmInstall(this.devDeps, {saveDev: true});
+      this.npmInstall();
       this.bowerInstall();
     }
-
-    // download wp and install
-    if (this.mampDir) {
-      var path = this.mampPath+'/'+this.appNameSlug;
-      mkdirp.sync(path);
-      http.get(
-        'https://wordpress.org/latest.tar.gz',
-        function(resp) {
-          resp
-            .pipe(zlib.createGunzip())
-            .pipe(tar.Extract({ path: path })
-          );
-        }
-      );
-    }
   }
+
 });
