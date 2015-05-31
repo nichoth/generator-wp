@@ -7,14 +7,13 @@ var latest = require('latest-version');
 var async = require('async');
 var fs = require('fs');
 var mkdirp = require('mkdirp');
-// var http = require('http');
-// var https = require('https');
 var request = require('request');
 var tar = require('tar');
 var zlib = require('zlib');
 var rimraf = require('rimraf');
 
 module.exports = yeoman.generators.Base.extend({
+
   initializing: function () {
     this.pkg = require('../package.json');
     this.config = {
@@ -105,115 +104,62 @@ module.exports = yeoman.generators.Base.extend({
   },
 
 
-  writing: {
-    app: function () {
+  writing: function () {
+    var done = this.async();
+    var self = this;
 
-  //     // easier without template
-  //     // var pkg = require('./templates/_package.json');
-  //     // pkg.name = this.appNameSlug;
-  //     // pkg.description = this.description;
-  //     // pkg.repository.url = pkg.repository.url+
-  //     //   '/'+this.appNameSlug+'.git'
-  //     // ;
-  //     // if (!this.installDeps && !this.skipVersions) {
-  //     //   pkg.devDependencies = this.depVersions;
-  //     // }
-  //     // fs.writeFile(
-  //     //   this.destinationPath('package.json'),
-  //     //   JSON.stringify(pkg, null, 2)
-  //     // );
+    // download wp
+    function wp(cb) {
+      var path = self.mampPath;
+      mkdirp.sync(path);
+      var extractor = tar.Extract({ path: path, strip: 1 });
+      request.get('https://wordpress.org/latest.tar.gz')
+        .pipe(zlib.createGunzip())
+        .pipe(extractor)
+      ;
+      extractor.on('end', cleanup);
 
-  //     // var bower = require('./templates/_bower.json');
-  //     // bower.name = this.appNameSlug;
-  //     // fs.writeFile(
-  //     //   this.destinationPath('bower.json'),
-  //     //   JSON.stringify(bower, null, 2)
-  //     // );
-
-  //     // this.fs.copyTpl(
-  //     //   this.templatePath('_readme.md'),
-  //     //   this.destinationPath('readme.md'),
-  //     //   this
-  //     // );
-  //     // this.fs.copyTpl(
-  //     //   this.templatePath(this.config.paths.style+'/style.scss'),
-  //     //   this.destinationPath(this.config.paths.style+'/style.scss'),
-  //     //   this
-  //     // );
-    },
-
-    projectfiles: function () {
-      var done = this.async();
-      var self = this;
-
-  //     // download wp
-  //     function wp(cb) {
-  //       var path = self.mampPath;
-  //       mkdirp.sync(path);
-  //       http.get(
-  //         'https://wordpress.org/latest.tar.gz',
-  //         function(resp) {
-  //           resp
-  //             .pipe(zlib.createGunzip())
-  //             .pipe(tar.Extract({ path: path })
-  //           );
-  //           resp.on('end', cleanup);
-  //         }
-  //       );
-  //       function cleanup() {
-  //         async.parallel([
-  //           function(cb) {
-  //             rimraf(self.mampPath+'wp-content/themes', function() {
-  //               cb();
-  //             });
-  //           },
-  //           plugins
-  //         ], function() {
-  //           cb();
-  //         });
-
-
-  //       }
-  //     }
-
-  //     function plugins(cb) {
-  //       rimraf(self.mampPath+'wp-content/plugins', function() {
-  //         self.directory(self.templatePath('plugins'),
-  //           self.mampPath+'wp-content/plugins'
-  //         );
-  //         cb();
-  //       });
-  //     }
-
-      // download theme
-      function scTheme(cb) {
-        var path = self.destinationPath('bla');
-        var extractor = tar.Extract({path:path});
-        request.get('https://github.com/nichoth/sc-wp-theme/tarball/master')
-          .pipe(zlib.createGunzip())
-          .pipe(extractor)
-        ;
-        extractor.on('end', cb);
+      function cleanup() {
+        async.parallel([
+          function(cb) {
+            rimraf(self.mampPath+'wp-content/themes', cb);
+          },
+          plugins
+        ], function() {
+          cb();
+        });
       }
+    }
 
-      var asyncTasks = [scTheme];
-      // if (this.mampDir) { asyncTasks.push(wp); }
-      async.parallel(asyncTasks, function() {
-        // make symlink
-        if (self.mampDir) {
-          mkdirp.sync(self.mampPath+'wp-content/themes');
-          fs.symlink(
-            self.destinationPath('public'),
-            self.mampPath+'wp-content/themes/sc',
-            function() {
-              done();
-            }
-          );
-        }
+    function plugins(cb) {
+      rimraf(self.mampPath+'wp-content/plugins', function() {
+        self.directory(self.templatePath('plugins'),
+          self.mampPath+'wp-content/plugins'
+        );
+        cb();
       });
+    }
 
+    // download theme
+    function scTheme(cb) {
+      var path = self.destinationPath();
+      var extractor = tar.Extract({ path: path, strip: 1 });
+      request.get('https://github.com/nichoth/sc-wp-theme/tarball/master')
+        .pipe(zlib.createGunzip())
+        .pipe(extractor)
+      ;
+      extractor.on('end', function() {
+        cb();
+      });
+    }
 
-
+    function write() {
+      rimraf.sync(this.destinationPath('readme.md'));
+      this.fs.copyTpl(
+        this.templatePath('_readme.md'),
+        this.destinationPath('readme.md'),
+        this
+      );
       this.fs.copy(
         this.templatePath('editorconfig'),
         this.destinationPath('.editorconfig')
@@ -223,12 +169,41 @@ module.exports = yeoman.generators.Base.extend({
         this.destinationPath('.gitignore')
       );
     }
+
+    var asyncTasks = [scTheme];
+    if (this.mampDir) { asyncTasks.push(wp); }
+
+    async.parallel(asyncTasks, function() {
+      write.bind(self)();
+      if (self.mampDir) {
+        mkdirp.sync(self.mampPath+'wp-content/themes');
+        fs.symlink(
+          self.destinationPath('public'),
+          self.mampPath+'wp-content/themes/sc',
+          function() {
+            done();
+          }
+        );
+      } else {
+        done();
+      }
+    });
   },
 
   install: function () {
     if (this.installDeps) {
-      this.npmInstall();
-      this.bowerInstall();
+      this.installDependencies();
+    }
+  },
+
+  end: function() {
+    if (this.installDeps) {
+      fs.createReadStream(
+        this.destinationPath(
+          'bower_components/flexslider/jquery.flexslider-min.js'
+      )).pipe(fs.createWriteStream(
+          this.destinationPath('js/jquery.flexslider-min.js')
+      ));
     }
   }
 
