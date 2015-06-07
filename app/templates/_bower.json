@@ -1,11 +1,19 @@
 {
-  "name": "",
+  "name": "sc-wp-theme",
   "version": "0.0.0",
+  "authors": [
+    "nichoth <nichoth@gmail.com>"
+  ],
+  "description": "slowclouds wordpress theme",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
   "dependencies": {
-    "little-grid": "*",
-    "silent-clearfix": "*",
-    "normalize.css": "*",
-    "flexslider": "latest"
   },
   "private": true
 }

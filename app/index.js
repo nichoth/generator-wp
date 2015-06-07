@@ -12,15 +12,22 @@ var tar = require('tar');
 var zlib = require('zlib');
 var rimraf = require('rimraf');
 
+var config = {
+  paths: {
+    src: 'src/',
+    dist: 'dist/',
+    mamp: '/Applications/MAMP/htdocs/'
+  },
+  url: {
+    wp: 'https://wordpress.org/latest.tar.gz',
+    theme: 'https://github.com/nichoth/sc-wp-theme/tarball/master'
+  }
+};
+
 module.exports = yeoman.generators.Base.extend({
 
   initializing: function () {
     this.pkg = require('../package.json');
-    this.config = {
-      paths: {
-
-      }
-    };
   },
 
   prompting: function () {
@@ -45,7 +52,7 @@ module.exports = yeoman.generators.Base.extend({
     },
     {
       type: 'checkbox',
-      name: 'bowerDeps',
+      name: 'npmDeps',
       message: 'Other stuff',
       choices: [{
         name: 'flexslider',
@@ -70,11 +77,12 @@ module.exports = yeoman.generators.Base.extend({
       this.appName = props.appName;
       this.description = props.description;
       this.appNameSlug = slug(props.appName);
-      this.mampPath = '/Applications/MAMP/htdocs/'+this.appNameSlug+'/';
-      this.devDeps = ['livereload'];
+      this.mampPath = config.paths.mamp+this.appNameSlug+'/';
+      this.devDeps = ['uglify-js'];
       this.installDeps = props.installDeps;
       this.mampDir = props.mampDir;
-      this.bowerDeps = props.bowerDeps;
+      this.bowerDeps = ['sc-sass'];
+      this.npmDeps = props.npmDeps;
       this.depVersions = {};
 
       function devDeps(cb) {
@@ -113,7 +121,7 @@ module.exports = yeoman.generators.Base.extend({
       var path = self.mampPath;
       mkdirp.sync(path);
       var extractor = tar.Extract({ path: path, strip: 1 });
-      request.get('https://wordpress.org/latest.tar.gz')
+      request.get(config.url.wp)
         .pipe(zlib.createGunzip())
         .pipe(extractor)
       ;
@@ -122,7 +130,7 @@ module.exports = yeoman.generators.Base.extend({
       function cleanup() {
         async.parallel([
           function(cb) {
-            rimraf(self.mampPath+'wp-content/themes', cb);
+            rimraf(self.mampPath+'wp-content/themes/*', cb);
           },
           plugins
         ], function() {
@@ -140,48 +148,60 @@ module.exports = yeoman.generators.Base.extend({
       });
     }
 
-    // download theme
-    function scTheme(cb) {
-      var path = self.destinationPath();
-      var extractor = tar.Extract({ path: path, strip: 1 });
-      request.get('https://github.com/nichoth/sc-wp-theme/tarball/master')
-        .pipe(zlib.createGunzip())
-        .pipe(extractor)
-      ;
-      extractor.on('end', function() {
-        cb();
-      });
-    }
-
+    // write template files
     function write() {
-      rimraf.sync(this.destinationPath('readme.md'));
+      this.directory(
+        this.templatePath('src'),
+        this.destinationPath('src')
+      );
+      mkdirp.sync(this.destinationPath('dist/images'));
+      mkdirp.sync(this.destinationPath('dist/js'));
       this.fs.copyTpl(
         this.templatePath('_readme.md'),
         this.destinationPath('readme.md'),
         this
       );
+      this.fs.copyTpl(
+        this.templatePath('_package.json'),
+        this.destinationPath('package.json'),
+        this
+      );
+      this.fs.copyTpl(
+        this.templatePath('_main.js'),
+        this.destinationPath('src/js/main.js'),
+        this
+      );
+      this.fs.copyTpl(
+        this.templatePath('_bower.json'),
+        this.destinationPath('bower.json'),
+        this
+      );
       this.fs.copy(
-        this.templatePath('editorconfig'),
+        this.templatePath('_editorconfig'),
         this.destinationPath('.editorconfig')
       );
       this.fs.copy(
         this.templatePath('_gitignore'),
         this.destinationPath('.gitignore')
       );
+      this.fs.copyTpl(
+        this.templatePath('_main.scss'),
+        this.destinationPath('src/style/main.scss'),
+        this
+      );
     }
+    write.bind(self)();
 
-    var asyncTasks = [scTheme];
+    var asyncTasks = [];
     if (this.mampDir) { asyncTasks.push(wp); }
 
     async.parallel(asyncTasks, function() {
-      write.bind(self)();
-      if (self.mampDir) {
-        mkdirp.sync(self.mampPath+'wp-content/themes');
+      if (self.mampDir) {  // create symlink and copy plugins
         fs.symlink(
-          self.destinationPath('public'),
-          self.mampPath+'wp-content/themes/sc',
+          self.destinationPath(config.paths.src),
+          self.mampPath+'wp-content/themes/'+self.appNameSlug,
           function() {
-            done();
+            plugins(done);
           }
         );
       } else {
@@ -192,21 +212,15 @@ module.exports = yeoman.generators.Base.extend({
 
   install: function () {
     if (this.installDeps) {
-      this.installDependencies();
-      this.bowerInstall(this.bowerDeps);
+      console.log(chalk.yellow('Installing npm and bower dependencies.'));
+      this.npmInstall(this.devDeps, {'saveDev': true});
+      this.npmInstall(this.npmDeps, {'save': true});
+      this.bowerInstall(this.bowerDeps, {'save': true});
     }
   },
 
   end: function() {
     if (this.installDeps) {
-      if (this.bowerDeps.indexOf('flexslider') > -1) {
-        fs.createReadStream(
-          this.destinationPath(
-            'bower_components/flexslider/jquery.flexslider-min.js'
-        )).pipe(fs.createWriteStream(
-            this.destinationPath('js/jquery.flexslider-min.js')
-        ));
-      }
     }
   }
 

@@ -1,0 +1,3 @@
+@import "../../bower_components/sc-sass/sc-sass";
+<% if (npmDeps.indexOf('flexslider') > -1) { %>@import "../../node_modules/flexslider/flexslider.css";<% } %>
+@import "custom/custom";

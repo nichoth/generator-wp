@@ -1,16 +1,21 @@
 {
-  "name": "",
-  "description": "",
+  "name": "<%=appName%>",
+  "description": "<%=description%>",
   "main": "",
   "version": "0.0.0",
   "scripts": {
-    "lr": "livereload site/themes/ag/",
-    "build-sass": "sass site/style/style.scss:dist/themes/sc/style.css --style compressed",
-    "watch-sass": "sass --watch site/style/style.scss:site/themes/sc/style.css --style expanded"
+    "lr": "livereload src",
+    "build": "npm run build-php && npm run build-js && npm run build-sass",
+    "build-php": "cp src/*.php dist && cp src/images/* dist/images",
+    "build-js": "browserify src/js/main.js --exclude jquery | uglifyjs --compress --mangle > dist/js/bundle.js",
+    "watch-js": "watchify -dv src/js/main.js -o src/js/bundle.js",
+    "build-sass": "sass src/style/main.scss:dist/style.css --style compressed",
+    "watch-sass": "sass --watch src/style/main.scss:src/style.css --style expanded",
+    "dev": "npm run watch-js & npm run watch-sass"
   },
   "repository": {
     "type": "git",
-    "url": "https://bitbucket.org/slowclouds"
+    "url": "https://bitbucket.org/slowclouds/<%=appNameSlug%>"
   },
   "license": "ISC",
   "peerDependencies": {
