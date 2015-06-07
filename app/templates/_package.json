@@ -5,8 +5,11 @@
   "version": "0.0.0",
   "scripts": {
     "lr": "livereload src",
-    "build": "npm run build-php && npm run build-js && npm run build-sass",
-    "build-php": "cp src/*.php dist && cp src/images/* dist/images",
+    "deploy-site": "node bin/deploySite.js && node bin/deployTheme.js",
+    "deploy": "node bin/deployTheme.js",
+    "clean": "rm dist/*.* && rm dist/images/* && rm dist/js/*",
+    "build": "npm run clean && npm run build-php && npm run build-js && npm run build-sass && cp src/images/* dist/images",
+    "build-php": "cp src/*.php dist",
     "build-js": "browserify src/js/main.js --exclude jquery | uglifyjs --compress --mangle > dist/js/bundle.js",
     "watch-js": "watchify -dv src/js/main.js -o src/js/bundle.js",
     "build-sass": "sass src/style/main.scss:dist/style.css --style compressed",

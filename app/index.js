@@ -20,8 +20,16 @@ var config = {
   },
   url: {
     wp: 'https://wordpress.org/latest.tar.gz',
-    theme: 'https://github.com/nichoth/sc-wp-theme/tarball/master'
   }
+};
+
+var ftpConfig = {
+  'host': 'localhost',
+  'user': 'anonymous',
+  'password': '',
+  'wpPath': '',
+  'themePath': 'wp-content/themes/',
+  'mampPath': config.paths.mamp
 };
 
 module.exports = yeoman.generators.Base.extend({
@@ -78,12 +86,15 @@ module.exports = yeoman.generators.Base.extend({
       this.description = props.description;
       this.appNameSlug = slug(props.appName);
       this.mampPath = config.paths.mamp+this.appNameSlug+'/';
-      this.devDeps = ['uglify-js'];
+      this.devDeps = ['uglify-js', 'vinyl-fs', 'vinyl-ftp'];
       this.installDeps = props.installDeps;
       this.mampDir = props.mampDir;
       this.bowerDeps = ['sc-sass'];
       this.npmDeps = props.npmDeps;
       this.depVersions = {};
+      this.ftpConfig = ftpConfig;
+      this.ftpConfig.themePath = ftpConfig.themePath+this.appNameSlug;
+      this.ftpConfig.mampPath = ftpConfig.mampPath+this.appNameSlug;
 
       function devDeps(cb) {
         async.each(self.devDeps, getVersion, function(err) {
@@ -154,8 +165,10 @@ module.exports = yeoman.generators.Base.extend({
         this.templatePath('src'),
         this.destinationPath('src')
       );
-      mkdirp.sync(this.destinationPath('dist/images'));
-      mkdirp.sync(this.destinationPath('dist/js'));
+      this.directory(
+        this.templatePath('bin'),
+        this.destinationPath('bin')
+      );
       this.fs.copyTpl(
         this.templatePath('_readme.md'),
         this.destinationPath('readme.md'),
@@ -192,7 +205,16 @@ module.exports = yeoman.generators.Base.extend({
     }
     write.bind(self)();
 
-    var asyncTasks = [];
+    var asyncTasks = [
+      fs.writeFile.bind(
+        self,
+        self.destinationPath('ftp.json'),
+        JSON.stringify(self.ftpConfig, null, 2)
+      ),
+      mkdirp.bind(self, this.destinationPath('dist/images')),
+      mkdirp.bind(self, this.destinationPath('dist/js'))
+    ];
+
     if (this.mampDir) { asyncTasks.push(wp); }
 
     async.parallel(asyncTasks, function() {
@@ -211,11 +233,35 @@ module.exports = yeoman.generators.Base.extend({
   },
 
   install: function () {
+    var done = this.async();
+
     if (this.installDeps) {
       console.log(chalk.yellow('Installing npm and bower dependencies.'));
       this.npmInstall(this.devDeps, {'saveDev': true});
       this.npmInstall(this.npmDeps, {'save': true});
       this.bowerInstall(this.bowerDeps, {'save': true});
+    } else { // save deps but dont install
+
+      var pkg = require(this.destinationPath('package.json'));
+      pkg.devDependencies = this.depVersions;
+
+      var bowerJson = require(this.destinationPath('bower.json'));
+      this.bowerDeps.forEach(function(dep) {
+        bowerJson.dependencies[dep] = '*';
+      });
+
+      async.parallel([
+        fs.writeFile.bind(
+          this,
+          this.destinationPath('package.json'),
+          JSON.stringify(pkg, null, 2)
+        ),
+        fs.writeFile.bind(
+          this,
+          this.destinationPath('bower.json'),
+          JSON.stringify(bowerJson, null, 2)
+        ),
+      ], done);
     }
   },
 
