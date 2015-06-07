@@ -18,8 +18,7 @@ module.exports = yeoman.generators.Base.extend({
     this.pkg = require('../package.json');
     this.config = {
       paths: {
-        style: 'site/style',
-        wp: 'site/wp'
+
       }
     };
   },
@@ -44,16 +43,16 @@ module.exports = yeoman.generators.Base.extend({
       name: 'description',
       message: 'Project description: '
     },
-    // {
-    //   type: 'checkbox',
-    //   name: 'devDeps',
-    //   message: 'Other stuff',
-    //   choices: [{
-    //     name: 'react',
-    //     value: 'react',
-    //     checked: false
-    //   }]
-    // },
+    {
+      type: 'checkbox',
+      name: 'bowerDeps',
+      message: 'Other stuff',
+      choices: [{
+        name: 'flexslider',
+        value: 'flexslider',
+        checked: false
+      }]
+    },
     {
       type: 'confirm',
       name: 'installDeps',
@@ -63,7 +62,7 @@ module.exports = yeoman.generators.Base.extend({
     {
       type: 'confirm',
       name: 'mampDir',
-      message: 'Create MAMP directory?',
+      message: 'Create MAMP directory and install WP?',
       default: true
     }];
 
@@ -75,6 +74,7 @@ module.exports = yeoman.generators.Base.extend({
       this.devDeps = ['livereload'];
       this.installDeps = props.installDeps;
       this.mampDir = props.mampDir;
+      this.bowerDeps = props.bowerDeps;
       this.depVersions = {};
 
       function devDeps(cb) {
@@ -193,17 +193,20 @@ module.exports = yeoman.generators.Base.extend({
   install: function () {
     if (this.installDeps) {
       this.installDependencies();
+      this.bowerInstall(this.bowerDeps);
     }
   },
 
   end: function() {
     if (this.installDeps) {
-      fs.createReadStream(
-        this.destinationPath(
-          'bower_components/flexslider/jquery.flexslider-min.js'
-      )).pipe(fs.createWriteStream(
-          this.destinationPath('js/jquery.flexslider-min.js')
-      ));
+      if (this.bowerDeps.indexOf('flexslider') > -1) {
+        fs.createReadStream(
+          this.destinationPath(
+            'bower_components/flexslider/jquery.flexslider-min.js'
+        )).pipe(fs.createWriteStream(
+            this.destinationPath('js/jquery.flexslider-min.js')
+        ));
+      }
     }
   }
 
