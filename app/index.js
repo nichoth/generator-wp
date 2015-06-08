@@ -11,6 +11,7 @@ var request = require('request');
 var tar = require('tar');
 var zlib = require('zlib');
 var rimraf = require('rimraf');
+var path = require('path');
 
 var config = {
   paths: {
@@ -91,6 +92,10 @@ module.exports = yeoman.generators.Base.extend({
       this.mampDir = props.mampDir;
       this.bowerDeps = ['sc-sass'];
       this.npmDeps = props.npmDeps;
+      this.cssDeps = [];
+      if (this.npmDeps.indexOf('flexslider') > -1) {
+        this.cssDeps.push('node_modules/flexslider/flexslider.css');
+      }
       this.depVersions = {};
       this.ftpConfig = ftpConfig;
       this.ftpConfig.themePath = ftpConfig.themePath+this.appNameSlug;
@@ -240,6 +245,7 @@ module.exports = yeoman.generators.Base.extend({
       this.npmInstall(this.devDeps, {'saveDev': true});
       this.npmInstall(this.npmDeps, {'save': true});
       this.bowerInstall(this.bowerDeps, {'save': true});
+      done();
     } else { // save deps but dont install
 
       var pkg = require(this.destinationPath('package.json'));
@@ -266,8 +272,20 @@ module.exports = yeoman.generators.Base.extend({
   },
 
   end: function() {
+    // change from .css to .scss
+    function rename(cssPath) {
+      var basename = path.basename(cssPath, '.css');
+      var dirname = path.dirname(cssPath);
+      return dirname+'/_'+basename+'.scss';
+    }
+
     if (this.installDeps) {
+      this.cssDeps.forEach(function(path) {
+        this.fs.copy(
+          this.destinationPath(path),
+          this.destinationPath(rename(path))
+        );
+      }, this);
     }
   }
-
 });

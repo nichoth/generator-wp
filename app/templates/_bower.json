@@ -1,10 +1,10 @@
 {
-  "name": "sc-wp-theme",
+  "name": "<%=appName%>",
   "version": "0.0.0",
   "authors": [
     "nichoth <nichoth@gmail.com>"
   ],
-  "description": "slowclouds wordpress theme",
+  "description": "<%=description%>",
   "license": "MIT",
   "ignore": [
     "**/.*",
